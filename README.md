@@ -1,4 +1,4 @@
-# Partial Solution for FLT from Trigonometric Analysis
+# Partial Solution for Fermat's Last Theorem from Trigonometric Analysis
 
 This Lean 4 project formalizes two asymptotic results for the trigonometric
 equation
