@@ -1,4 +1,4 @@
-# Partial Solution for FLT from Trigonometric Analysis
+# Asymptotic analysis of a trigonometric reformulation associated with Fermat’s equation
 
 This Lean 4 project formalizes three asymptotic results for the trigonometric
 equation
