@@ -1,6 +1,6 @@
-# Partial Solution for Fermat's Last Theorem from Trigonometric Analysis
+# Partial Solution for FLT from Trigonometric Analysis
 
-This Lean 4 project formalizes two asymptotic results for the trigonometric
+This Lean 4 project formalizes three asymptotic results for the trigonometric
 equation
 
 ```text
@@ -80,6 +80,23 @@ This theorem applies away from poles of the sine ratio. It does not claim that
 every root sequence converges, or that every point on the level set is
 approached by roots. Other branches may approach zero, a pole, or `pi / 2`.
 
+### 3. Fixed-frequency collapse on the acute branch
+
+```lean
+RootCollapse.roots_tend_to_zero_of_acute_branch
+```
+
+For fixed `0 < a < b`, the global restriction `b <= 1` can be removed if every
+root satisfies the Fermat acute-angle condition
+
+```text
+0 < a * t_n < b * t_n < pi / 2.
+```
+
+Then every root sequence again satisfies `t_n -> 0`. The acute condition rules
+out poles and makes sine strictly increasing between `a * t_n` and `b * t_n`,
+so the level-set alternative from the general-frequency theorem is impossible.
+
 ## Meaning of Partial Solution
 
 These results give a partial analytic classification of the trigonometric
@@ -88,11 +105,16 @@ problem induced by a hypothetical Fermat triple:
 - Below the unit frequency boundary, every root sequence collapses to zero.
 - For general `b > a`, every positive, interior, nonsingular accumulation
   point lies on the level set where the sine ratio equals one.
+- When the frequencies are fixed and `a * t_n`, `b * t_n` remain ordered acute
+  angles, that level set is inaccessible and collapse to zero is the only
+  possible asymptotic behavior.
 
 This is **not a proof of Fermat's Last Theorem**. Fermat's Last Theorem concerns
 each fixed integer exponent and exact positive integers. The results here are
-asymptotic statements about real roots and do not provide the missing
-arithmetic contradiction that would exclude an integer triple.
+asymptotic statements about real roots. Across hypothetical triples with
+varying exponent, the normalized frequencies may also vary, so these theorems
+do not provide the missing arithmetic contradiction that excludes an integer
+triple.
 
 ## Building the Proofs
 
@@ -114,6 +136,7 @@ The formal proofs contain no `sorry` or admitted results.
 
 ## Manuscript
 
-The accompanying manuscript includes the mathematical derivations,
-interpretation, graphs, limitations, and Lean theorem statements
+The accompanying Word manuscript includes the mathematical derivations,
+interpretation, graphs, limitations, and Lean theorem statements:
 
+[`Root_Collapse_Nonoscillatory_Sine_Ratios.docx`](../output/docx/Root_Collapse_Nonoscillatory_Sine_Ratios.docx)
