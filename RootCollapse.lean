@@ -119,6 +119,125 @@ theorem roots_tend_to_zero
       linarith
     exact htδ.trans hδε
 
+private lemma sine_ratio_pos_lt_one_of_acute
+    {a b t : ℝ} (ha : 0 < a) (hab : a < b) (ht : 0 < t)
+    (hbt : b * t ≤ Real.pi / 2) :
+    0 < Real.sin (a * t) / Real.sin (b * t) ∧
+      Real.sin (a * t) / Real.sin (b * t) < 1 := by
+  have hb : 0 < b := lt_trans ha hab
+  have hat : 0 < a * t := mul_pos ha ht
+  have hbt0 : 0 < b * t := mul_pos hb ht
+  have habt : a * t < b * t := mul_lt_mul_of_pos_right hab ht
+  have hhalfpi : Real.pi / 2 < Real.pi := by linarith [Real.pi_pos]
+  have hsin_a : 0 < Real.sin (a * t) :=
+    Real.sin_pos_of_pos_of_lt_pi hat (habt.trans (hbt.trans_lt hhalfpi))
+  have hsin_b : 0 < Real.sin (b * t) :=
+    Real.sin_pos_of_pos_of_lt_pi hbt0 (hbt.trans_lt hhalfpi)
+  have hsin_lt : Real.sin (a * t) < Real.sin (b * t) := by
+    exact Real.strictMonoOn_sin
+      ⟨by linarith [Real.pi_pos], habt.le.trans hbt⟩
+      ⟨by linarith [Real.pi_pos], hbt⟩ habt
+  exact ⟨div_pos hsin_a hsin_b, (div_lt_one hsin_b).2 hsin_lt⟩
+
+/-- Fixed frequencies need no global assumption `b ≤ 1`: if every root stays
+on the acute branch `b * t n < π / 2`, then all roots still converge to zero. -/
+theorem roots_tend_to_zero_of_acute_branch
+    {a b : ℝ} (ha : 0 < a) (hab : a < b)
+    (t : ℕ → ℝ)
+    (ht : ∀ n, t n ∈ Ioo (0 : ℝ) (Real.pi / 2))
+    (hacute : ∀ n, b * t n < Real.pi / 2)
+    (hroot : ∀ n,
+      (Real.sin (a * t n) / Real.sin (b * t n)) ^ n = Real.tan (t n) ^ 2) :
+    Tendsto t atTop (𝓝 0) := by
+  have hb : 0 < b := lt_trans ha hab
+  let U : ℝ := Real.pi / (2 * b)
+  have hU0 : 0 < U := div_pos Real.pi_pos (mul_pos zero_lt_two hb)
+  have htU : ∀ n, t n < U := by
+    intro n
+    dsimp [U]
+    rw [lt_div_iff₀ (mul_pos zero_lt_two hb)]
+    nlinarith [hacute n]
+  rw [tendsto_order]
+  constructor
+  · intro c hc
+    filter_upwards [] with n
+    exact lt_trans hc (ht n).1
+  · intro ε hε
+    let δ : ℝ := min (min (ε / 2) (U / 2)) (Real.pi / 4)
+    have hδ0 : 0 < δ := by
+      dsimp [δ]
+      exact lt_min (lt_min (half_pos hε) (half_pos hU0)) (by positivity)
+    have hδε : δ < ε := by
+      exact lt_of_le_of_lt ((min_le_left _ _).trans (min_le_left _ _)) (half_lt_self hε)
+    have hδU : δ ≤ U := by
+      calc
+        δ ≤ min (ε / 2) (U / 2) := min_le_left _ _
+        _ ≤ U / 2 := min_le_right _ _
+        _ ≤ U := half_le_self hU0.le
+    let r : ℝ → ℝ := fun x => Real.sin (a * x) / Real.sin (b * x)
+    have hr_cont : ContinuousOn r (Icc δ U) := by
+      apply ContinuousOn.div
+      · fun_prop
+      · fun_prop
+      · intro x hx
+        have hbx0 : 0 < b * x := mul_pos hb (lt_of_lt_of_le hδ0 hx.1)
+        have hbxhalf : b * x ≤ Real.pi / 2 := by
+          have hxU := hx.2
+          dsimp [U] at hxU
+          rw [le_div_iff₀ (mul_pos zero_lt_two hb)] at hxU
+          nlinarith
+        exact (Real.sin_pos_of_pos_of_lt_pi hbx0
+          (hbxhalf.trans_lt (by linarith [Real.pi_pos]))).ne'
+    obtain ⟨s, hs, hsmax⟩ := isCompact_Icc.exists_isMaxOn
+      (nonempty_Icc.mpr hδU) hr_cont
+    let M := r s
+    have hbshalf : b * s ≤ Real.pi / 2 := by
+      have hsU := hs.2
+      dsimp [U] at hsU
+      rw [le_div_iff₀ (mul_pos zero_lt_two hb)] at hsU
+      nlinarith
+    have hM : 0 < M ∧ M < 1 :=
+      sine_ratio_pos_lt_one_of_acute ha hab (lt_of_lt_of_le hδ0 hs.1) hbshalf
+    have htanδ : 0 < Real.tan δ ^ 2 := by
+      have hδhalf : δ < Real.pi / 2 := by
+        calc
+          δ ≤ Real.pi / 4 := min_le_right _ _
+          _ < Real.pi / 2 := by linarith [Real.pi_pos]
+      have htan : 0 < Real.tan δ :=
+        Real.tan_pos_of_pos_of_lt_pi_div_two hδ0 hδhalf
+      positivity
+    have hpow : Tendsto (fun n : ℕ => M ^ n) atTop (𝓝 0) :=
+      tendsto_pow_atTop_nhds_zero_of_lt_one hM.1.le hM.2
+    have heventually : ∀ᶠ n : ℕ in atTop, M ^ n < Real.tan δ ^ 2 :=
+      hpow.eventually (Iio_mem_nhds htanδ)
+    filter_upwards [heventually] with n hn
+    have htδ : t n < δ := by
+      by_contra hnot
+      have hδtn : δ ≤ t n := le_of_not_gt hnot
+      have htnK : t n ∈ Icc δ U := ⟨hδtn, (htU n).le⟩
+      have hrle : r (t n) ≤ M := hsmax htnK
+      have hrpos : 0 ≤ r (t n) :=
+        (sine_ratio_pos_lt_one_of_acute ha hab (ht n).1 (hacute n).le).1.le
+      have hrpow : r (t n) ^ n ≤ M ^ n :=
+        pow_le_pow_left₀ hrpos hrle n
+      have hδhalf : δ < Real.pi / 2 := by
+        calc
+          δ ≤ Real.pi / 4 := min_le_right _ _
+          _ < Real.pi / 2 := by linarith [Real.pi_pos]
+      have htanmono : Real.tan δ ≤ Real.tan (t n) :=
+        Real.strictMonoOn_tan.monotoneOn
+          ⟨by linarith [Real.pi_pos], hδhalf⟩
+          ⟨by linarith [Real.pi_pos], (ht n).2⟩ hδtn
+      have htansq : Real.tan δ ^ 2 ≤ Real.tan (t n) ^ 2 := by
+        nlinarith [Real.tan_pos_of_pos_of_lt_pi_div_two hδ0 hδhalf]
+      have hcontra : Real.tan (t n) ^ 2 < Real.tan δ ^ 2 := by
+        calc
+          Real.tan (t n) ^ 2 = r (t n) ^ n := (hroot n).symm
+          _ ≤ M ^ n := hrpow
+          _ < Real.tan δ ^ 2 := hn
+      linarith
+    exact htδ.trans hδε
+
 /-- For arbitrary frequencies, an interior accumulation point of positive roots,
 away from a zero of the denominator, lies on the level set `sin (a t) / sin (b t) = 1`.
 The explicit positivity hypothesis is automatic for odd exponents because the
